@@ -64,13 +64,13 @@ class BaseTest(tf.test.TestCase):
         lambda val: cifar10_main.parse_record(val, False))
     image, label = fake_dataset.make_one_shot_iterator().get_next()
 
-    self.assertAllEqual(label.shape, (10,))
+    self.assertAllEqual(label.shape, ())
     self.assertAllEqual(image.shape, (_HEIGHT, _WIDTH, _NUM_CHANNELS))
 
     with self.test_session() as sess:
       image, label = sess.run([image, label])
 
-      self.assertAllEqual(label, np.array([int(i == 7) for i in range(10)]))
+      self.assertEqual(label, 7)
 
       for row in image:
         for pixel in row:
@@ -89,6 +89,7 @@ class BaseTest(tf.test.TestCase):
             'batch_size': _BATCH_SIZE,
             'resnet_version': resnet_version,
             'loss_scale': 128 if dtype == tf.float16 else 1,
+            'fine_tune': False,
         })
 
     predictions = spec.predictions
@@ -163,6 +164,13 @@ class BaseTest(tf.test.TestCase):
         main=cifar10_main.run_cifar, tmp_root=self.get_temp_dir(),
         extra_flags=['-resnet_version', '2']
     )
+
+  def test_flag_restriction(self):
+    with self.assertRaises(SystemExit):
+      integration.run_synthetic(
+          main=cifar10_main.run_cifar, tmp_root=self.get_temp_dir(),
+          extra_flags=['-resnet_version', '1', "-dtype", "fp16"]
+      )
 
 
 if __name__ == '__main__':
